@@ -30,6 +30,7 @@ ChartJS.register(
 const API_URL = 'http://localhost:5001';
 
 // --- CÓDIGO DE EJEMPLO (AHORA GLOBAL) ---
+// --- **CORRECCIÓN 4** (Código de ejemplo seguro que no escribe archivos) ---
 const CODIGO_INEFICIENTE_EJEMPLO = `import time
 
 print("--- Iniciando Script Ineficiente ---")
@@ -37,12 +38,11 @@ lista = []
 for i in range(1000000):
     lista.append(i)
 
-# Abrir un archivo sin 'with' (mala práctica)
-f = open("test.txt", "w")
-f.write("test")
-f.close()
+# Simulación de una operación costosa sin I/O
+# que CodeCarbon pueda medir.
+resultado = sum(lista)
 
-print("--- Script Terminado ---")
+print(f"--- Script Terminado ---")
 `;
 
 // --- Componente Helper para los Badges de Prioridad ---
@@ -52,7 +52,6 @@ const PriorityBadge = ({ prioridad }) => {
   else if (prioridad === 'Media') className += 'badge-medium';
   else className += 'badge-low';
   
-  // Devolvemos la cápsula de color
   return <span className={className}>{prioridad}</span>;
 };
 
@@ -61,16 +60,12 @@ function RequisitosTab() {
   const [descripcion, setDescripcion] = useState('');
   const [prioridad, setPrioridad] = useState('Alta');
   const [requisitos, setRequisitos] = useState([]);
-
-  // --- NUEVOS ESTADOS ---
-  // Funcionalidad 2: Para el aviso de campos requeridos
   const [error, setError] = useState(null);
-  // Funcionalidad 3: Para mostrar el reporte
   const [reporte, setReporte] = useState(null);
-  // Funcionalidad 4: Para saber qué requisito estamos editando
-  const [editingReq, setEditingReq] = useState(null); // Objeto: {id, descripcion, prioridad}
+  const [editingReq, setEditingReq] = useState(null);
 
   const cargarRequisitos = async () => {
+    // Usamos el proyecto_id=1 hardcodeado
     const res = await axios.get(`${API_URL}/api/requisitos/1`);
     setRequisitos(res.data);
   };
@@ -79,28 +74,25 @@ function RequisitosTab() {
     cargarRequisitos();
   }, []);
 
-  // --- HANDLER PARA ENVIAR (Func 1 y 2) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);   // Limpiar errores
-    setReporte(null); // Limpiar reporte
+    setError(null);
+    setReporte(null);
 
-    // Funcionalidad 2: Avisar si está incompleto
     if (!descripcion) {
-      setError('El campo "Descripción" es requerido para incluir aspectos eco-eficientes.');
+      setError('El campo "Descripción" es requerido.');
       return; 
     }
 
     try {
-      // Funcionalidad 1: Se envía al backend, que integra la estimación
       await axios.post(`${API_URL}/api/requisitos`, {
         descripcion,
         prioridad,
-        proyecto_id: 1,
+        proyecto_id: 1, // Hardcodeado
       });
       setDescripcion('');
       setPrioridad('Alta');
-      cargarRequisitos(); // Recargar la lista
+      cargarRequisitos();
     } catch (err) {
       if (err.response && err.response.data.error) {
         setError(err.response.data.error);
@@ -110,27 +102,25 @@ function RequisitosTab() {
     }
   };
 
-  // --- HANDLER PARA REPORTE (Func 3) ---
   const handleGenerarReporte = async () => {
-    setError(null); // Limpiar
+    setError(null);
     try {
+      // Usamos el proyecto_id=1 hardcodeado
       const res = await axios.get(`${API_URL}/api/requisitos/reporte/1`);
-      setReporte(res.data); // data es { total_kwh_proyectado, total_requisitos }
+      setReporte(res.data);
     } catch (error) {
       setError("Error al generar el reporte.");
     }
   };
 
-  // --- HANDLERS PARA EDICIÓN (Func 4) ---
   const handleEditClick = (req) => {
-    // Al hacer clic en "Editar", guardamos el requisito en el estado 'editingReq'
     setEditingReq({ ...req }); 
     setError(null);
     setReporte(null);
   };
 
   const handleCancelEdit = () => {
-    setEditingReq(null); // Limpiamos el estado para cancelar
+    setEditingReq(null);
   };
 
   const handleUpdate = async (req_id) => {
@@ -140,30 +130,29 @@ function RequisitosTab() {
     }
     
     try {
-      // Funcionalidad 4: Se envía al endpoint PUT, que recalculará
       await axios.put(`${API_URL}/api/requisitos/${req_id}`, {
         descripcion: editingReq.descripcion,
         prioridad: editingReq.prioridad
       });
-      setEditingReq(null); // Salimos del modo edición
-      cargarRequisitos();  // Recargamos la lista con los datos actualizados
+      setEditingReq(null);
+      cargarRequisitos();
     } catch (error) {
       setError("Error al actualizar el requisito.");
     }
   };
   
   const handleDelete = async (req_id) => {
-    // Confirmación simple
     if (window.confirm("¿Seguro que quieres eliminar este requisito?")) {
       try {
         await axios.delete(`${API_URL}/api/requisitos/${req_id}`);
-        cargarRequisitos(); // Recargamos la lista
+        cargarRequisitos();
       } catch (error) {
         setError("Error al eliminar el requisito.");
       }
     }
   };
 
+  // El JSX de RequisitosTab no cambia
   return (
     <div className="Tab-container">
       <h3>Recopilación de Requisitos con Métricas Energéticas</h3>
@@ -190,16 +179,13 @@ function RequisitosTab() {
           ✔ Validar y Agregar
         </button>
         
-        {/* Funcionalidad 3 (Botón) */}
         <button type="button" onClick={handleGenerarReporte} className="btn btn-priority-medium" style={{marginLeft: '10px'}}>
           📊 Generar Reporte
         </button>
       </form>
       
-      {/* Funcionalidad 2 (Display de Error) */}
       {error && <div className="form-error">{error}</div>}
       
-      {/* Funcionalidad 3 (Display de Reporte) */}
       {reporte && (
         <div className="report-box">
           <h4>Reporte Preliminar de Impacto Ambiental</h4>
@@ -218,7 +204,6 @@ function RequisitosTab() {
         {requisitos.map((req) => (
           <li key={req.id}>
           
-            {/* Funcionalidad 4 (Modo Edición vs. Modo Vista) */}
             {editingReq && editingReq.id === req.id ? (
               // --- MODO EDICIÓN ---
               <div className="req-edit-mode">
@@ -247,7 +232,8 @@ function RequisitosTab() {
                 <span>
                   {req.descripcion} <br />
                   <small style={{ color: 'var(--text-light-secondary)' }}>
-                    Estimado: {req.kwh_estimado.toFixed(2)} kWh
+                    {/* Corrección de 'kwh_estimado' que puede ser null/undefined */}
+                    Estimado: {req.kwh_estimado ? req.kwh_estimado.toFixed(2) : 'N/A'} kWh
                   </small>
                 </span>
                 <div className="req-actions">
@@ -266,15 +252,18 @@ function RequisitosTab() {
 }
 
 // --- Pestaña para HU-002: Arquitectura ---
-function ArquitecturaTab() {
+// *** MODIFICADO ***
+function ArquitecturaTab({ setCodigo, setArquitecturaId, setCodigoId, setTab }) {
   const editorRef = useRef(null);
   
-  // --- NUEVOS ESTADOS ---
   const [impactoProyectado, setImpactoProyectado] = useState(null);
   const [sugerencias, setSugerencias] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // *** NUEVO ESTADO ***
+  const [arquitecturaIdLocal, setArquitecturaIdLocal] = useState(null);
 
   useEffect(() => {
-    // Inicializar Grapes.js solo una vez
     if (!editorRef.current) {
       const editor = grapesjs.init({
         container: '#gjs',
@@ -282,16 +271,15 @@ function ArquitecturaTab() {
         plugins: [gjsPresetWebpage],
         storageManager: false,
         width: 'auto',
-        height: '60vh', // Un poco más de altura
+        height: '60vh',
       });
       
-      // --- Añadir componentes ECO a la biblioteca ---
       const blockManager = editor.Blocks;
       blockManager.add('eco-image-loader', {
         label: 'Eco Image Loader',
         content: '<div data-gjs-type="eco-image-loader" style="padding:10px; border:2px dashed #22C55E;">Eco Image</div>',
         category: 'Eco-Eficiente',
-        attributes: { class:'gjs-block-eco' } // Clase para estilo
+        attributes: { class:'gjs-block-eco' }
       });
       blockManager.add('eco-video-player', {
         label: 'Eco Video Player',
@@ -304,39 +292,30 @@ function ArquitecturaTab() {
     }
   }, []);
 
-  // --- NUEVAS FUNCIONES HANDLER ---
-
-  // Característica 1, 2 y 4: Sugerir / Evaluar / Reoptimizar (Simuladas)
   const handleSugerir = async () => {
-    setImpactoProyectado(null); // Limpiar cálculo anterior
+    setImpactoProyectado(null);
     try {
       const res = await axios.get(`${API_URL}/api/componentes/sugerir`);
       setSugerencias(res.data);
     } catch (error) {
       console.error("Error al sugerir componentes:", error);
-      setSugerencias([]); // Limpiar en caso de error
+      setSugerencias([]);
     }
   };
 
-  // Característica 3: Calcular Impacto
+  // *** MODIFICADO ***
   const handleCalcularImpacto = async () => {
     if (!editorRef.current) return;
-    setSugerencias([]); // Limpiar sugerencias anteriores
+    setSugerencias([]);
+    setIsLoading(true);
 
-    // 1. Obtener componentes del editor
     const components = editorRef.current.getComponents();
     
-    // 2. Mapear a una lista simple de tipos/tags
-    // Usamos una función recursiva para obtener todos los componentes anidados
     const getAllTypes = (comps) => {
       let types = [];
       comps.forEach(comp => {
-        // 'tagName' es más fiable para HTML base (h1, p)
-        // 'type' es para componentes custom (ej: 'eco-image-loader')
         const type = comp.get('type') !== 'default' ? comp.get('type') : comp.get('tagName');
         types.push(type);
-        
-        // Si tiene hijos, los procesamos
         if (comp.components().length > 0) {
           types = types.concat(getAllTypes(comp.components()));
         }
@@ -346,45 +325,85 @@ function ArquitecturaTab() {
 
     const componentList = getAllTypes(components);
     
-    // 3. Enviar al backend para calcular
     try {
+      // Ahora esto guarda en BBDD y devuelve el ID
       const res = await axios.post(`${API_URL}/api/arquitectura/calcular_impacto`, {
         componentes: componentList
       });
       setImpactoProyectado(res.data.total_kwh_proyectado);
+      
+      // *** NUEVO ***
+      // Guardamos el ID de la arquitectura creada
+      setArquitecturaId(res.data.arquitectura_id); // Actualiza estado en App
+      setArquitecturaIdLocal(res.data.arquitectura_id); // Actualiza estado local
+      
     } catch (error) {
       console.error("Error al calcular impacto:", error);
     }
+    setIsLoading(false);
+  };
+  
+  // *** NUEVA FUNCIÓN (FLUJO LOW-CODE) ***
+  const handleGenerarCodigo = async () => {
+    if (!editorRef.current || !arquitecturaIdLocal) {
+        alert("Primero debe 'Calcular Impacto' para guardar una arquitectura.");
+        return;
+    }
+    setIsLoading(true);
+    
+    // 1. Obtenemos el código de GrapesJS
+    const html = editorRef.current.getHtml();
+    const css = editorRef.current.getCss();
+    const codigo_generado = `\n<style>\n${css}\n</style>\n${html}`;
+    
+    try {
+        // 2. Enviamos el código al nuevo endpoint
+        const res = await axios.post(`${API_URL}/api/codigo/generar`, {
+            arquitectura_id: arquitecturaIdLocal,
+            script: codigo_generado
+        });
+        
+        // 3. Actualizamos el estado global en App.js
+        setCodigo(res.data.script); // Pone el HTML/CSS en el editor
+        setCodigoId(res.data.codigo_id); // Establece el ID del código
+        
+        // 4. Cambiamos de pestaña
+        setTab('optimizador');
+        
+    } catch (error) {
+        console.error("Error al generar código:", error);
+        alert("Error al generar código.");
+    }
+    setIsLoading(false);
   };
 
   return (
     <div className="Tab-container">
       <h3>Pantalla de Diseño de Arquitectura Low-Code</h3>
       
-      {/* --- NUEVOS BOTONES (Funcionalidades 1-4) --- */}
       <div className="architecture-controls">
-        {/* 1. Sugerir IA */}
-        <button onClick={handleSugerir} className="btn btn-purple">
+        <button onClick={handleSugerir} className="btn btn-purple" disabled={isLoading}>
           ✨ 1. Sugerir Componentes (IA)
         </button>
-        {/* 2. Evaluar Eco */}
-        <button onClick={handleSugerir} className="btn btn-priority-high">
-          ♻️ 2. Evaluar Alternativas Eco
+        <button onClick={handleCalcularImpacto} className="btn btn-green" disabled={isLoading}>
+          ⚡ 2. Calcular Impacto (Guardar)
         </button>
-        {/* 3. Calcular Impacto */}
-        <button onClick={handleCalcularImpacto} className="btn btn-green">
-          ⚡ 3. Calcular Impacto Ambiental
-        </button>
-        {/* 4. Re-optimizar */}
-        <button onClick={handleSugerir} className="btn btn-priority-medium">
-          🔄 4. Re-optimizar Selección
+        
+        {/* --- NUEVO BOTÓN --- */}
+        <button 
+          onClick={handleGenerarCodigo} 
+          className="btn btn-priority-medium" 
+          disabled={!arquitecturaIdLocal || isLoading}
+          title={!arquitecturaIdLocal ? "Debe 'Calcular Impacto' primero" : "Generar código y pasar a optimización"}
+        >
+          ♻️ 3. Generar Código y Optimizar
         </button>
       </div>
 
-      {/* --- NUEVOS RESULTADOS --- */}
       {impactoProyectado !== null && (
         <div className="impact-result">
-          Impacto Ambiental Proyectado: <strong>{impactoProyectado.toFixed(3)} kWh</strong>
+          Impacto Proyectado: <strong>{impactoProyectado.toFixed(3)} kWh</strong>
+          (Arquitectura ID: {arquitecturaIdLocal})
         </div>
       )}
       
@@ -402,43 +421,47 @@ function ArquitecturaTab() {
         </div>
       )}
       
-      {/* El lienzo de GrapesJS */}
       <div id="gjs"></div>
     </div>
   );
 }
 
-// --- Pestaña para HU-003: Optimizador (MODIFICADA) ---
-// Ahora recibe {codigo, setCodigo} como props
-function OptimizadorTab({ codigo, setCodigo }) {
-  // const [codigo, setCodigo] = useState(CODIGO_INEFICIENTE_EJEMPLO); // <-- ESTADO MOVIDO A App()
+// --- Pestaña para HU-003: Optimizador ---
+// *** MODIFICADO ***
+function OptimizadorTab({ codigo, setCodigo, codigoId }) {
   const [resultado, setResultado] = useState(null);
   const [sugerencias, setSugerencias] = useState([]);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Deshabilitar botones si no hay códigoId
+  const isDisabled = !codigoId;
 
-  // Limpia los resultados anteriores
   const clearResults = () => {
     setResultado(null);
     setSugerencias([]);
     setError(null);
   }
 
-  // Funcionalidad (Problema 1): Renombrado para ser claro
   const handleRestablecerEjemplo = () => {
     clearResults();
-    setCodigo(CODIGO_INEFICIENTE_EJEMPLO); // <-- Usa la prop setCodigo
+    // Nota: Esto rompe el flujo de BBDD, es solo para demo
+    alert("Ejemplo restablecido. Para usar la optimización real, genere código desde la pestaña 'Arquitectura'.");
+    setCodigo(CODIGO_INEFICIENTE_EJEMPLO); 
   }
 
-  // Funcionalidad 3: Validar eficiencia
+  // *** MODIFICADO ***
   const handleAnalizar = async () => {
     clearResults();
-    setResultado('Analizando...');
+    setIsLoading(true);
+    setResultado('Analizando (CodeCarbon Real)...');
     try {
       const res = await axios.post(`${API_URL}/api/codigo/analizar`, {
-        codigo, // <-- Usa la prop codigo
+        codigo,
+        codigo_id: codigoId // Envía el ID del código
       });
       setResultado(
-        `Análisis completado:\n  Emisiones CO2: ${res.data.emisiones_co2.toFixed(6)} kg\n  Consumo CPU: ${res.data.consumo_cpu.toFixed(5)} %`
+        `Análisis (Real) completado:\n  Emisiones CO2: ${res.data.emisiones_co2.toFixed(6)} kg\n  Consumo CPU: ${res.data.consumo_cpu.toFixed(5)} %`
       );
     } catch (err) {
       if (err.response && err.response.data.error) {
@@ -448,24 +471,25 @@ function OptimizadorTab({ codigo, setCodigo }) {
       }
       setResultado(null);
     }
+    setIsLoading(false);
   };
 
-  // Funcionalidad 1 y 2: Optimizar y Reducir
+  // *** MODIFICADO ***
   const handleOptimizar = async () => {
     clearResults();
-    setResultado('Optimizando y re-analizando...');
+    setIsLoading(true);
+    setResultado('Optimizando con IA (Ollama)...');
     try {
       const res = await axios.post(`${API_URL}/api/codigo/optimizar`, {
-        codigo, // <-- Usa la prop codigo
+        codigo,
+        codigo_id: codigoId // Envía el ID
       });
       
-      // Actualiza el <textarea> con el código optimizado
-      setCodigo(res.data.nuevo_codigo); // <-- Usa la prop setCodigo
+      setCodigo(res.data.nuevo_codigo); // Actualiza con el código de Ollama
       
-      // Muestra el nuevo resultado (reducido)
       const r = res.data.resultado;
       setResultado(
-        `¡OPTIMIZADO! (Reducción ~70-90%)\n  Nuevas Emisiones CO2: ${r.emisiones_co2.toFixed(6)} kg\n  Nuevo Consumo CPU: ${r.consumo_cpu.toFixed(5)} %`
+        `¡OPTIMIZADO POR IA! (Medición Real)\n  Nuevas Emisiones CO2: ${r.emisiones_co2.toFixed(6)} kg\n  Nuevo Consumo CPU: ${r.consumo_cpu.toFixed(5)} %`
       );
     } catch (err) {
        if (err.response && err.response.data.error) {
@@ -475,63 +499,71 @@ function OptimizadorTab({ codigo, setCodigo }) {
       }
       setResultado(null);
     }
+    setIsLoading(false);
   }
   
-  // Funcionalidad 4: Sugerir Mejoras
+  // *** MODIFICADO ***
   const handleSugerir = async () => {
     clearResults();
+    setIsLoading(true);
     try {
       const res = await axios.post(`${API_URL}/api/codigo/sugerir`, {
-        codigo, // <-- Usa la prop codigo
+        codigo,
+        // (sugerir no necesita codigo_id ya que no guarda métricas)
       });
-      setSugerencias(res.data.sugerencias); // [{linea, sugerencia}, ...]
+      // La API ahora devuelve [{sugerencia: "texto"}, ...]
+      setSugerencias(res.data.sugerencias); 
     } catch (err) {
       setError('Error al obtener sugerencias.');
     }
+    setIsLoading(false);
   }
 
   return (
     <div className="Tab-container">
       <h3>Pantalla de Generación y Optimización de Código con IA</h3>
       
-      {/* Nuevos Controles para HU-003 */}
+      {isDisabled && (
+        <div className="form-error" style={{textAlign: 'center', fontWeight: 'bold'}}>
+          Para activar este panel, primero debe "Calcular Impacto" y "Generar Código" en la pestaña de "Diseño de Arquitectura".
+        </div>
+      )}
+      
       <div className="code-controls">
         <button onClick={handleRestablecerEjemplo} className="btn btn-priority-high">
-          1. Restablecer Ejemplo
+          1. Restablecer Ejemplo (Demo)
         </button>
-        <button onClick={handleOptimizar} className="btn btn-purple">
-          2. Optimizar Código (IA)
+        <button onClick={handleOptimizar} className="btn btn-purple" disabled={isDisabled || isLoading}>
+          2. Optimizar Código (IA Real)
         </button>
-        <button onClick={handleAnalizar} className="btn btn-green">
-          3. Validar Eficiencia (Analizar)
+        <button onClick={handleAnalizar} className="btn btn-green" disabled={isDisabled || isLoading}>
+          3. Validar Eficiencia (Real)
         </button>
-        <button onClick={handleSugerir} className="btn btn-priority-medium">
-          4. Sugerir Mejoras (IA)
+        <button onClick={handleSugerir} className="btn btn-priority-medium" disabled={isLoading}>
+          4. Sugerir Mejoras (IA Real)
         </button>
       </div>
 
       <div className="form-group">
-        <label>Editor de Código (Python) - (Compartido con Pruebas)</label>
+        <label>Editor de Código (Python / HTML) - (ID de Código: {codigoId || "Ninguno"})</label>
         <textarea
-          value={codigo} // <-- Usa la prop codigo
-          onChange={(e) => setCodigo(e.target.value)} // <-- Usa la prop setCodigo
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
           rows="15"
           style={{fontFamily: 'Courier New', 'fontSize': '1rem'}}
+          readOnly={isDisabled} // No se puede editar si no hay ID
         ></textarea>
       </div>
 
-      {/* Display de Error */}
       {error && <div className="form-error">{error}</div>}
 
-      {/* Display de Resultado (Análisis / Optimización) */}
       {resultado && (
         <pre className="optimizer-result">{resultado}</pre>
       )}
       
-      {/* Display de Sugerencias (Funcionalidad 4) */}
       {sugerencias.length > 0 && (
         <div className="suggestions-box" style={{marginTop: '15px'}}>
-          <h4>Sugerencias de la IA:</h4>
+          <h4>Sugerencias de la IA (Ollama):</h4>
           <ul>
             {sugerencias.map((sug, index) => (
               <li key={index}>
@@ -546,11 +578,15 @@ function OptimizadorTab({ codigo, setCodigo }) {
 }
 
 // --- Pestaña para HU-004: PRUEBAS ---
-function PruebasTab({ codigo }) { // Recibe el código compartido
+// *** MODIFICADO ***
+function PruebasTab({ codigo, codigoId }) { 
   const [reporte, setReporte] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const isDisabled = !codigoId;
 
+  // *** MODIFICADO ***
   const handleEjecutarPruebas = async () => {
     setError(null);
     setReporte(null);
@@ -559,8 +595,9 @@ function PruebasTab({ codigo }) { // Recibe el código compartido
     try {
       const res = await axios.post(`${API_URL}/api/pruebas/ejecutar`, {
         codigo,
+        codigo_id: codigoId // Envía el ID
       });
-      setReporte(res.data); // data = { pasaron, mensaje, alerta_pico, metricas, reduccion_comparativa }
+      setReporte(res.data);
     } catch (err) {
       if (err.response && err.response.data.error) {
         setError(err.response.data.error);
@@ -574,23 +611,27 @@ function PruebasTab({ codigo }) { // Recibe el código compartido
   return (
     <div className="Tab-container">
       <h3>Ejecución de Pruebas con Evaluación Energética</h3>
+      
+      {isDisabled && (
+        <div className="form-error" style={{textAlign: 'center', fontWeight: 'bold'}}>
+          Para activar este panel, primero debe "Generar Código" en la pestaña de "Diseño de Arquitectura".
+        </div>
+      )}
+      
       <p>
-        El código del editor de la pestaña "Codificación" se usará para ejecutar las pruebas.
+        El código del editor (ID: {codigoId || "Ninguno"}) se usará para ejecutar las pruebas.
       </p>
-      <button onClick={handleEjecutarPruebas} className="btn btn-green" disabled={isLoading}>
-        {isLoading ? "Ejecutando..." : "▶️ Ejecutar Pruebas Funcionales y de Eficiencia"}
+      <button onClick={handleEjecutarPruebas} className="btn btn-green" disabled={isDisabled || isLoading}>
+        {isLoading ? "Ejecutando..." : "▶️ Ejecutar Pruebas (CodeCarbon Real)"}
       </button>
 
-      {/* Display de Error */}
       {error && <div className="form-error">{error}</div>}
 
-      {/* Display de Reporte de Pruebas */}
       {reporte && (
         <div className={`report-box-pruebas ${reporte.pasaron ? 'report-success' : 'report-fail'}`}>
           <h4>{reporte.pasaron ? '✔ PRUEBAS SUPERADAS' : '❌ PRUEBAS FALLIDAS'}</h4>
           <p>{reporte.mensaje}</p>
 
-          {/* Funcionalidad 4: Alerta de Pico */}
           {reporte.alerta_pico && (
             <div className="form-error" style={{marginTop: '10px'}}>
               <strong>Alerta de Ineficiencia:</strong> {reporte.alerta_pico}
@@ -599,19 +640,17 @@ function PruebasTab({ codigo }) { // Recibe el código compartido
           
           <hr />
           
-          {/* Funcionalidad 1: Métricas de Consumo */}
-          <h4>Métricas de Consumo (Funcionalidad 1)</h4>
+          <h4>Métricas de Consumo (Reales)</h4>
           <p>
             Emisiones CO2 (durante la prueba): <strong>{reporte.metricas.emisiones_co2.toFixed(6)} kg</strong>
           </p>
           <p>
-            Consumo CPU (durante la prueba): <strong>{reporte.metricas.consumo_cpu.toFixed(5)} %</strong>
+            Consumo CPU (estimado): <strong>{reporte.metricas.consumo_cpu.toFixed(5)} %</strong>
           </p>
 
           <hr />
 
-          {/* Funcionalidad 3: Reporte de Reducción */}
-          <h4>Reporte Comparativo (Funcionalidad 3)</h4>
+          <h4>Reporte Comparativo (Simulado)</h4>
           <p>
             Reducción de CO2 (vs. método tradicional): <strong>{reporte.reduccion_comparativa}</strong>
           </p>
@@ -628,66 +667,71 @@ const UMBRAL_PICO_CO2 = 0.0003;
 function DashboardTab() {
   const [chartData, setChartData] = useState(null);
   const [alerta, setAlerta] = useState(null);
+  const [hayPicos, setHayPicos] = useState(false);
   
+  // *** MODIFICADO ***
   const cargarMetricas = async () => {
-    setAlerta(null); 
+    setAlerta(null);
+    setHayPicos(false); 
+    // Ahora las métricas se obtienen con el JOIN complejo desde el proyecto 1
     const { data } = await axios.get(`${API_URL}/api/metricas/1`);
 
-    // Funcionalidad 2: Detectar picos
+    if (data.labels.length === 0) {
+        setAlerta("No hay métricas en la base de datos. Genere análisis en las pestañas 'Codificación' o 'Pruebas'.");
+        setChartData(null); // Limpia el gráfico
+        return;
+    }
+
     const picosDetectados = data.data_co2.filter(val => val > UMBRAL_PICO_CO2);
     if (picosDetectados.length > 0) {
       setAlerta(
-        `¡PICO DETECTADO! Se ${picosDetectados.length > 1 ? 'detectaron' : 'detectó'} ${picosDetectados.length} ${picosDetectados.length > 1 ? 'análisis' : 'análisis'} que superan el umbral eco-eficiente de ${UMBRAL_PICO_CO2.toFixed(5)} kg CO2. Se recomienda optimización.`
+        `¡PICO DETECTADO! Se ${picosDetectados.length > 1 ? 'detectaron' : 'detectó'} ${picosDetectados.length} ${picosDetectados.length > 1 ? 'análisis' : 'análisis'} que superan el umbral de ${UMBRAL_PICO_CO2.toFixed(5)} kg CO2.`
       );
+      setHayPicos(true);
     }
     
-    // Funcionalidad 3: Comparar con Benchmark
     const benchmarkData = Array(data.labels.length).fill(UMBRAL_PICO_CO2);
     
     setChartData({
       labels: data.labels,
       datasets: [
         {
-          label: 'Emisiones CO2 (kg)',
+          label: 'Emisiones CO2 (kg) (Real)',
           data: data.data_co2,
           borderColor: 'var(--accent-green)', 
           backgroundColor: 'rgba(34, 197, 94, 0.3)',
           tension: 0.1
         },
         {
-          label: 'Consumo CPU (%)',
+          label: 'Consumo CPU (Estimado) (%)',
           data: data.data_cpu,
           borderColor: 'var(--accent-purple)', 
           backgroundColor: 'rgba(168, 85, 247, 0.3)',
           tension: 0.1
         },
-        // Funcionalidad 3: Línea de Benchmark
         {
-          label: 'Benchmark Eco-Eficiente (Umbral)',
+          label: 'Benchmark Eco-Eficiente',
           data: benchmarkData,
           borderColor: 'var(--priority-high)',
           backgroundColor: 'rgba(249, 115, 22, 0.3)',
-          borderDash: [5, 5], // Línea punteada
+          borderDash: [5, 5],
           tension: 0.1,
-          pointRadius: 0 // Sin puntos
+          pointRadius: 0
         }
       ],
     });
   };
 
-  // Opciones del Gráfico para que sea Dark Mode
   const chartOptions = {
     responsive: true,
     scales: {
       y: {
         ticks: { color: 'var(--text-light-secondary)' },
-        // --- CAMBIO SOLICITADO ---
-        grid: { color: '#64748B' } // Un gris-azulado claro para la grilla
+        grid: { color: '#64748B' }
       },
       x: {
         ticks: { color: 'var(--text-light-secondary)' },
-        // --- CAMBIO SOLICITADO ---
-        grid: { color: '#64748B' } // Un gris-azulado claro para la grilla
+        grid: { color: '#64748B' }
       }
     },
     plugins: {
@@ -697,27 +741,28 @@ function DashboardTab() {
     }
   };
 
-  // Funcionalidad 4: Exportar Reporte (Simulado)
   const handleExportar = () => {
-    // Simulamos la exportación con una alerta
-    const reduccionEstimada = "92.5%"; // Valor de ejemplo (de HU-004)
+    const reduccionEstimada = "92.5%";
     window.alert(
       `REPORTE EXPORTADO (Simulación)\n\n` +
-      `Estimación de Reducción de CO2 (vs. tradicional): ${reduccionEstimada}\n` +
+      `Estimación de Reducción de CO2: ${reduccionEstimada}\n` +
       `Picos detectados: ${alerta ? 'Sí' : 'No'}\n` +
       `Total de análisis en BBDD: ${chartData ? chartData.labels.length : 0}`
     );
   };
+  
+  // Cargar métricas al montar el componente
+  useEffect(() => {
+    cargarMetricas();
+  }, []);
 
   return (
     <div className="Tab-container">
       <h3>Dashboard de Métricas Ambientales (IA)</h3>
       <div className="code-controls">
-        {/* Funcionalidad 1: Visualizar métricas */}
         <button onClick={cargarMetricas} className="btn btn-green">
-          Actualizar Dashboard (Cargar datos)
+          Actualizar Dashboard (Cargar datos BBDD)
         </button>
-        {/* Funcionalidad 4: Exportar */}
         <button onClick={handleExportar} className="btn btn-priority-medium">
           Exportar Reporte
         </button>
@@ -727,20 +772,17 @@ function DashboardTab() {
         {chartData ? (
           <Line data={chartData} options={chartOptions} />
         ) : (
-          <p>Presiona "Actualizar" para cargar los datos históricos de la BBDD.</p>
+          <p style={{textAlign: 'center', fontStyle: 'italic'}}>Presiona "Actualizar" para cargar los datos de la BBDD.</p>
         )}
       </div>
 
-      {/* Funcionalidad 3: Texto de Benchmark */}
       <p className="dashboard-info">
-        La línea naranja punteada representa el "Benchmark Eco-Eficiente" (Umbral de pico). 
-        Cualquier análisis por encima de esta línea requiere optimización.
+        La línea naranja punteada representa el "Benchmark Eco-Eficiente".
       </p>
 
-      {/* Funcionalidad 2: Alerta de Pico */}
       {alerta && (
-        <div className="dashboard-alert">
-          <strong>Alerta de IA:</strong> {alerta}
+        <div className={hayPicos ? "dashboard-alert" : "dashboard-info"}>
+          <strong>Info:</strong> {alerta}
         </div>
       )}
     </div>
@@ -748,43 +790,50 @@ function DashboardTab() {
 }
 
 // --- Pestaña para HU-006: REFACTORIZACIÓN ---
-function RefactorizacionTab({ codigo, setCodigo }) {
+// *** MODIFICADO ***
+function RefactorizacionTab({ codigo, setCodigo, codigoId }) {
   const [resultado, setResultado] = useState(null);
   const [sugerencias, setSugerencias] = useState([]);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const isDisabled = !codigoId;
 
-  // Limpia los resultados anteriores
   const clearResults = () => {
     setResultado(null);
     setSugerencias([]);
     setError(null);
   }
 
-  // Criterio 1: Proporcionar sugerencias
+  // Criterio 1: Proporcionar sugerencias (IA Real)
   const handleSugerir = async () => {
     clearResults();
+    setIsLoading(true);
     try {
       const res = await axios.post(`${API_URL}/api/codigo/sugerir`, {
         codigo,
       });
-      setSugerencias(res.data.sugerencias); // [{linea, sugerencia}, ...]
+      setSugerencias(res.data.sugerencias);
     } catch (err) {
       setError('Error al obtener sugerencias.');
     }
+    setIsLoading(false);
   }
 
-  // Criterio 3: Eliminar estructuras ineficientes (Auto)
+  // Criterio 3: Eliminar estructuras ineficientes (IA Real)
   const handleOptimizar = async () => {
     clearResults();
-    setResultado('Optimizando y re-analizando...');
+    setIsLoading(true);
+    setResultado('Refactorizando con IA (Ollama)...');
     try {
       const res = await axios.post(`${API_URL}/api/codigo/optimizar`, {
-        codigo, 
+        codigo,
+        codigo_id: codigoId
       });
       setCodigo(res.data.nuevo_codigo); 
       const r = res.data.resultado;
       setResultado(
-        `¡Refactorización automática completada!\n  Nuevas Emisiones CO2: ${r.emisiones_co2.toFixed(6)} kg\n  Nuevo Consumo CPU: ${r.consumo_cpu.toFixed(5)} %`
+        `¡Refactorización automática (Real) completada!\n  Nuevas Emisiones CO2: ${r.emisiones_co2.toFixed(6)} kg\n  Nuevo Consumo CPU: ${r.consumo_cpu.toFixed(5)} %`
       );
     } catch (err) {
        if (err.response && err.response.data.error) {
@@ -794,18 +843,21 @@ function RefactorizacionTab({ codigo, setCodigo }) {
       }
       setResultado(null);
     }
+    setIsLoading(false);
   }
 
-  // Criterio 2: Validar mejora (Medir)
+  // Criterio 2: Validar mejora (CodeCarbon Real)
   const handleAnalizar = async () => {
     clearResults();
-    setResultado('Validando mejora (midiendo)...');
+    setIsLoading(true);
+    setResultado('Validando mejora (CodeCarbon Real)...');
     try {
       const res = await axios.post(`${API_URL}/api/codigo/analizar`, {
-        codigo, 
+        codigo,
+        codigo_id: codigoId
       });
       setResultado(
-        `Validación completada:\n  Emisiones CO2: ${res.data.emisiones_co2.toFixed(6)} kg\n  Consumo CPU: ${res.data.consumo_cpu.toFixed(5)} %`
+        `Validación (Real) completada:\n  Emisiones CO2: ${res.data.emisiones_co2.toFixed(6)} kg\n  Consumo CPU: ${res.data.consumo_cpu.toFixed(5)} %`
       );
     } catch (err) {
       if (err.response && err.response.data.error) {
@@ -815,51 +867,55 @@ function RefactorizacionTab({ codigo, setCodigo }) {
       }
       setResultado(null);
     }
+    setIsLoading(false);
   };
 
 
   return (
     <div className="Tab-container">
       <h3>Refactorización de Código con Sugerencias IA (HU-006)</h3>
+      {isDisabled && (
+        <div className="form-error" style={{textAlign: 'center', fontWeight: 'bold'}}>
+          Para activar este panel, primero debe "Generar Código" en la pestaña de "Diseño de Arquitectura".
+        </div>
+      )}
       <p>
-        Este panel te permite aplicar sugerencias de la IA y medir el impacto de la refactorización.
-        El impacto mejorado se registra automáticamente (Criterio 4) y es visible en el Dashboard.
+        Este panel usa IA real (Ollama) y mediciones reales (CodeCarbon).
+        El impacto mejorado se registra automáticamente en la BBDD (visible en el Dashboard).
       </p>
       
       <div className="code-controls">
-        <button onClick={handleSugerir} className="btn btn-purple">
+        <button onClick={handleSugerir} className="btn btn-purple" disabled={isLoading}>
           1. Proporcionar Sugerencias (IA)
         </button>
-         <button onClick={handleOptimizar} className="btn btn-priority-high">
-          3. Eliminar Ineficiencias (Auto)
+         <button onClick={handleOptimizar} className="btn btn-priority-high" disabled={isDisabled || isLoading}>
+          3. Refactorizar (IA Auto)
         </button>
-        <button onClick={handleAnalizar} className="btn btn-green">
+        <button onClick={handleAnalizar} className="btn btn-green" disabled={isDisabled || isLoading}>
           2. Validar Mejora (Medir)
         </button>
       </div>
 
       <div className="form-group">
-        <label>Editor de Código (Python) - (Compartido)</label>
+        <label>Editor de Código (ID de Código: {codigoId || "Ninguno"})</label>
         <textarea
-          value={codigo} // <-- Usa la prop codigo
-          onChange={(e) => setCodigo(e.target.value)} // <-- Usa la prop setCodigo
+          value={codigo}
+          onChange={(e) => setCodigo(e.target.value)}
           rows="15"
           style={{fontFamily: 'Courier New', 'fontSize': '1rem'}}
+          readOnly={isDisabled}
         ></textarea>
       </div>
 
-      {/* Display de Error */}
       {error && <div className="form-error">{error}</div>}
 
-      {/* Display de Resultado (Análisis / Optimización) */}
       {resultado && (
         <pre className="optimizer-result">{resultado}</pre>
       )}
       
-      {/* Display de Sugerencias (Criterio 1) */}
       {sugerencias.length > 0 && (
         <div className="suggestions-box" style={{marginTop: '15px'}}>
-          <h4>Sugerencias de la IA (Criterio 1):</h4>
+          <h4>Sugerencias de la IA (Ollama):</h4>
           <ul>
             {sugerencias.map((sug, index) => (
               <li key={index}>
@@ -879,17 +935,16 @@ function ReportesTab() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // CA 1: Generar reporte automático
   const handleGenerarReporte = async () => {
     setError(null);
     setReporte(null);
     setIsLoading(true);
     
     try {
+      // La API ahora usa el JOIN complejo
       const res = await axios.get(`${API_URL}/api/reportes/generar`);
-      setReporte(res.data); // data = { total_co2_generado, total_co2_tradicional_simulado, reduccion_porcentaje, ... }
+      setReporte(res.data);
     } catch (err) {
-      // CA 3: Avisar si el reporte está incompleto
       if (err.response && err.response.data.error) {
         setError(err.response.data.error);
       } else {
@@ -899,16 +954,14 @@ function ReportesTab() {
     setIsLoading(false);
   };
   
-  // CA 4: Exportar reporte final
   const handleExportar = () => {
     if (!reporte) {
       setError("Primero debe generar un reporte para poder exportarlo.");
       return;
     }
-    // Simulamos la exportación (similar a HU-005)
     window.alert(
       `REPORTE AMBIENTAL FINAL (Simulación)\n\n` +
-      `IMPACTO SOSTENIBLE (Visualización):\n` +
+      `IMPACTO SOSTENIBLE (Real):\n` +
       `----------------------------------------\n` +
       `Emisiones Totales (Optimizadas): ${reporte.total_co2_generado.toFixed(6)} kg CO2\n` +
       `Emisiones (Método Tradicional): ${reporte.total_co2_tradicional_simulado.toFixed(6)} kg CO2\n` +
@@ -922,37 +975,33 @@ function ReportesTab() {
     <div className="Tab-container">
       <h3>Generación de Reportes Ambientales (HU-007)</h3>
       <p>
-        Genera un reporte final que resume todas las métricas de CO2 monitoreadas en la base de datos.
+        Genera un reporte final que resume todas las métricas de CO2 monitoreadas en la base de datos (del Proyecto ID 1).
       </p>
       
       <div className="code-controls">
         <button onClick={handleGenerarReporte} className="btn btn-purple" disabled={isLoading}>
-          {isLoading ? "Generando..." : "1. Generar Reporte Automático"}
+          {isLoading ? "Generando..." : "1. Generar Reporte (BBDD Real)"}
         </button>
         <button onClick={handleExportar} className="btn btn-priority-medium" disabled={!reporte}>
           4. Exportar Reporte Final
         </button>
       </div>
 
-      {/* CA 3: Display de Error (Reporte incompleto) */}
       {error && <div className="form-error">{error}</div>}
 
-      {/* CA 1 y 2: Mostrar Reporte */}
       {reporte && (
         <div className="report-final-box">
           <h4 style={{color: 'var(--accent-green)', marginTop: 0}}>Reporte Ambiental Final Generado</h4>
           <p>
-            Basado en **{reporte.total_analisis_realizados}** análisis de rendimiento registrados en la base de datos.
+            Basado en **{reporte.total_analisis_realizados}** análisis de rendimiento registrados en la BBDD.
           </p>
           
           <div className="report-stats">
-            {/* CA 1: Estimaciones de CO2 */}
             <div className="stat-card">
               <div className="stat-card-label">Emisiones Totales (Optimizadas)</div>
               <div className="stat-card-value">{reporte.total_co2_generado.toFixed(6)} kg</div>
             </div>
             
-            {/* CA 2: Datos Comparativos */}
             <div className="stat-card">
               <div className="stat-card-label">Reducción vs. Tradicional</div>
               <div className="stat-card-value green">{reporte.reduccion_porcentaje.toFixed(2)} %</div>
@@ -964,9 +1013,7 @@ function ReportesTab() {
   );
 }
 
-// ===================================================================
-// --- NUEVA PESTAÑA PARA HU-008: DESPLIEGUE ---
-// ===================================================================
+// --- Pestaña para HU-008: DESPLIEGUE ---
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function DespliegueTab() {
@@ -977,7 +1024,7 @@ function DespliegueTab() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // CA 1: Revisar métricas eco-eficientes
+  // *** MODIFICADO ***
   const handlePreCheck = async () => {
     setError(null);
     setIssueReport(null);
@@ -985,8 +1032,9 @@ function DespliegueTab() {
     setIsLoading(true);
     
     try {
+      // La API ahora usa el JOIN complejo
       const res = await axios.get(`${API_URL}/api/despliegue/pre-check`);
-      setPreCheck(res.data); // data = { metrica_actual_co2, benchmark_co2, pasa_revision }
+      setPreCheck(res.data);
       if (res.data.pasa_revision) {
         setDeployLog("Revisión APROBADA. Listo para desplegar.");
       } else {
@@ -1002,7 +1050,6 @@ function DespliegueTab() {
     setIsLoading(false);
   };
 
-  // CA 3: Iniciar despliegue y confirmar alineación
   const handleDeploy = async () => {
     setError(null);
     setIssueReport(null);
@@ -1010,7 +1057,7 @@ function DespliegueTab() {
     setIsLoading(true);
     
     await sleep(1000);
-    setDeployLog(log => log + "Conectando con AWS...\n");
+    setDeployLog(log => log + "Conectando con Vercel/Render...\n");
     await sleep(1500);
     setDeployLog(log => log + "Provisionando contenedores...\n");
     await sleep(1000);
@@ -1018,28 +1065,27 @@ function DespliegueTab() {
     await sleep(500);
     setDeployLog(log => log + "¡DESPLIEGUE COMPLETADO!\n\n");
     
-    // CA 3: Confirmar alineación
-    setDeployLog(log => log + "VALIDACIÓN (CA 3): Despliegue completado. Se confirma la alineación con los objetivos de reducción de huella de carbono.");
+    setDeployLog(log => log + "VALIDACIÓN (CA 3): Despliegue completado.");
     setIsLoading(false);
   };
 
-  // CA 2: Correlacionar issue
+  // *** MODIFICADO ***
   const handleSimularIssue = async () => {
     setError(null);
     setIsLoading(true);
     try {
+      // La API ahora usa el JOIN complejo
       const res = await axios.get(`${API_URL}/api/despliegue/simular-issue`);
-      setIssueReport(res.data); // data = { correlacion_energetica, mensaje, ... }
+      setIssueReport(res.data);
     } catch (err) {
        setError('Error al analizar el issue.');
     }
      setIsLoading(false);
   };
   
-  // CA 4: Registrar feedback
   const handleFeedback = () => {
     if(!feedback) return;
-    alert(`FEEDBACK REGISTRADO (CA 4):\n\n"${feedback}"\n\nEste feedback se usará para optimizar futuras iteraciones.`);
+    alert(`FEEDBACK REGISTRADO (CA 4):\n\n"${feedback}"`);
     setFeedback("");
   }
 
@@ -1047,15 +1093,10 @@ function DespliegueTab() {
     <div className="Tab-container">
       <h3>Despliegue y Revisión de Métricas (HU-008)</h3>
 
-      {/* --- ETAPA 1: REVISIÓN (CA 1) --- */}
       <div className="deploy-step">
-        <h4>Paso 1: Revisión de Métricas (CA 1)</h4>
-        <p>
-          Antes de desplegar, se revisa la última métrica de CO2 registrada en la BBDD 
-          contra el benchmark del proyecto.
-        </p>
+        <h4>Paso 1: Revisión de Métricas (BBDD Real)</h4>
         <button onClick={handlePreCheck} className="btn btn-purple" disabled={isLoading}>
-          1. Revisar Métricas Eco-Eficientes
+          1. Revisar Última Métrica (BBDD)
         </button>
         {preCheck && (
           <div className={`pre-check-report ${preCheck.pasa_revision ? 'pre-check-pass' : 'pre-check-fail'}`}>
@@ -1068,22 +1109,18 @@ function DespliegueTab() {
         )}
       </div>
 
-      {/* --- ETAPA 2: DESPLIEGUE (CA 3) --- */}
       <div className="deploy-step">
-        <h4>Paso 2: Despliegue y Validación (CA 3)</h4>
-        <p>Inicia el despliegue simulado al entorno cloud.</p>
+        <h4>Paso 2: Despliegue y Validación (Simulado)</h4>
         <button onClick={handleDeploy} className="btn btn-green" disabled={isLoading || !preCheck || !preCheck.pasa_revision}>
-          2. Iniciar Despliegue
+          2. Iniciar Despliegue (Simulado)
         </button>
         <pre className="deploy-log">{deployLog}</pre>
       </div>
 
-      {/* --- ETAPA 3: ISSUES (CA 2) --- */}
       <div className="deploy-step">
-        <h4>Paso 3: Análisis Post-Despliegue (CA 2)</h4>
-        <p>Simula la detección de un issue (ej. "slow performance") y usa la IA para correlacionarlo con la última métrica energética.</p>
+        <h4>Paso 3: Análisis Post-Despliegue (BBDD Real)</h4>
         <button onClick={handleSimularIssue} className="btn btn-priority-high" disabled={isLoading}>
-          3. Simular Issue Post-Despliegue
+          3. Simular Issue (Correlación BBDD)
         </button>
         {issueReport && (
            <div className={`pre-check-report ${!issueReport.correlacion_energetica ? 'pre-check-pass' : 'pre-check-fail'}`}>
@@ -1092,10 +1129,8 @@ function DespliegueTab() {
         )}
       </div>
 
-      {/* --- ETAPA 4: FEEDBACK (CA 4) --- */}
       <div className="deploy-step">
-        <h4>Paso 4: Registrar Feedback (CA 4)</h4>
-        <p>Registra feedback inicial para optimizar futuras iteraciones sostenibles.</p>
+        <h4>Paso 4: Registrar Feedback (Simulado)</h4>
         <div className="form-group">
           <textarea
             value={feedback}
@@ -1109,7 +1144,6 @@ function DespliegueTab() {
         </button>
       </div>
 
-      {/* Display de Error General */}
       {error && <div className="form-error">{error}</div>}
       
     </div>
@@ -1121,28 +1155,35 @@ function DespliegueTab() {
 function App() {
   const [tab, setTab] = useState('requisitos');
   
-  // --- LEVANTAMOS EL ESTADO DEL CÓDIGO ---
+  // --- ESTADO LEVANTADO ---
   const [codigo, setCodigo] = useState(CODIGO_INEFICIENTE_EJEMPLO);
+  // --- NUEVO ESTADO PARA EL FLUJO DE BBDD ---
+  const [arquitecturaId, setArquitecturaId] = useState(null);
+  const [codigoId, setCodigoId] = useState(null);
 
   const renderTab = () => {
     switch (tab) {
       case 'requisitos':
         return <RequisitosTab />;
       case 'arquitectura':
-        return <ArquitecturaTab />;
+        // Pasa los setters para el flujo
+        return <ArquitecturaTab 
+                  setCodigo={setCodigo} 
+                  setArquitecturaId={setArquitecturaId} 
+                  setCodigoId={setCodigoId}
+                  setTab={setTab} 
+                />;
       case 'optimizador':
-        // Pasamos el estado y el 'setter' como props
-        return <OptimizadorTab codigo={codigo} setCodigo={setCodigo} />;
+        return <OptimizadorTab codigo={codigo} setCodigo={setCodigo} codigoId={codigoId} />;
       case 'pruebas':
-        // Pasamos solo el estado (solo necesita leerlo)
-        return <PruebasTab codigo={codigo} />;
-      case 'refactor': // <-- HU-006
-        return <RefactorizacionTab codigo={codigo} setCodigo={setCodigo} />;
-      case 'reportes': // <-- HU-007
+        return <PruebasTab codigo={codigo} codigoId={codigoId} />;
+      case 'refactor': 
+        return <RefactorizacionTab codigo={codigo} setCodigo={setCodigo} codigoId={codigoId} />;
+      case 'reportes': 
         return <ReportesTab />;
-      case 'despliegue': // <-- NUEVO CASO (HU-008)
+      case 'despliegue':
         return <DespliegueTab />;
-      case 'dashboard': // <-- HU-005
+      case 'dashboard':
         return <DashboardTab />;
       default:
         return <RequisitosTab />;
@@ -1154,51 +1195,48 @@ function App() {
       <header className="App-header">
         <h1>EcoDev Platform</h1>
       </header>
-      {/* Barra de Navegación (Tabs) */}
       <nav className="App-nav">
         <button 
           className={tab === 'requisitos' ? 'active' : ''} 
           onClick={() => setTab('requisitos')}>
-            Requisitos
+            1. Requisitos
         </button>
         <button 
           className={tab === 'arquitectura' ? 'active' : ''} 
           onClick={() => setTab('arquitectura')}>
-            Diseño de Arquitectura
+            2. Arquitectura
         </button>
         <button 
           className={tab === 'optimizador' ? 'active' : ''} 
           onClick={() => setTab('optimizador')}>
-            Codificación
+            3. Codificación
         </button>
         <button 
           className={tab === 'pruebas' ? 'active' : ''} 
           onClick={() => setTab('pruebas')}>
-            Pruebas
+            4. Pruebas
         </button>
         <button 
           className={tab === 'refactor' ? 'active' : ''} 
           onClick={() => setTab('refactor')}>
-            Refactorización
+            5. Refactorización
         </button>
         <button 
           className={tab === 'reportes' ? 'active' : ''} 
           onClick={() => setTab('reportes')}>
-            Reportes
+            6. Reportes
         </button>
-        {/* --- NUEVO BOTÓN DE NAVEGACIÓN --- */}
         <button 
           className={tab === 'despliegue' ? 'active' : ''} 
           onClick={() => setTab('despliegue')}>
-            Despliegue
+            7. Despliegue
         </button>
         <button 
           className={tab === 'dashboard' ? 'active' : ''} 
           onClick={() => setTab('dashboard')}>
-            Dashboard
+            8. Dashboard
         </button>
       </nav>
-      {/* Contenido de la pestaña activa */}
       {renderTab()}
     </div>
   );
