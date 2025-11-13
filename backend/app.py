@@ -1,7 +1,7 @@
 import os
 import requests
 import json
-import re # <-- Importante para la corrección 1
+import re 
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
@@ -12,7 +12,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- Configuración de MySQL (XAMPP) ---
-# Usa la base de datos 'ecodev_db' que creaste
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/ecodev_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -83,7 +83,7 @@ class Metrica(db.Model):
     id_me = db.Column(db.Integer, primary_key=True)
     consumoCPU = db.Column(db.Float)
     emisionesCO2 = db.Column(db.Float)
-    tiempoEjecucion = db.Column(db.Float) # Agregado
+    tiempoEjecucion = db.Column(db.Float)
     prueba_id = db.Column(db.Integer, db.ForeignKey('pruebas.id_pu'), nullable=False)
 
 class Reporte(db.Model):
@@ -329,7 +329,7 @@ def medir_codigo_con_codecarbon(codigo, codigo_id, tipo_prueba):
 
     except Exception as e:
         # --- **CORRECCIÓN 3** (Eliminar .is_running() que daba error) ---
-        tracker.stop() # Simplemente detenemos el tracker si hubo un error
+        tracker.stop() 
         
         # Manejo de errores de sintaxis
         if isinstance(e, (IndentationError, SyntaxError)):
@@ -447,7 +447,7 @@ def ejecutar_pruebas():
         'reduccion_comparativa': '92.5%' # Simulado
     }
 
-    # 2. Simular fallo de prueba (basado en código ineficiente)
+    # 2. Simular fallo de prueba
     if "for i in range" in codigo and "append" in codigo:
         reporte_pruebas['pasaron'] = False
         reporte_pruebas['mensaje'] = '¡FALLO DETECTADO! Prueba de eficiencia energética falló.'
@@ -478,7 +478,7 @@ def get_metricas(proyecto_id):
 
 @app.route('/api/reportes/generar', methods=['GET'])
 def generar_reporte_ambiental():
-    proyecto_id = 1 # Asumimos proyecto 1
+    proyecto_id = 1 
     metricas = get_metrics_for_project(proyecto_id)
     
     if not metricas:

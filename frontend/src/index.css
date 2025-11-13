@@ -1,19 +1,19 @@
 /* src/index.css */
 :root {
-  /* Paleta de Colores (según tu brief) */
-  --bg-dark-primary: #0F172A;   /* Azul marino profundo (casi negro) */
-  --bg-dark-secondary: #1E293B; /* Azul/gris oscuro (para contenedores/tarjetas) */
   
-  --text-light-primary: #F1F5F9; /* Blanco (gris muy claro) */
-  --text-light-secondary: #94A3B8; /* Gris (para texto más suave) */
+  --bg-dark-primary: #0F172A;   
+  --bg-dark-secondary: #1E293B; 
+  
+  --text-light-primary: #F1F5F9; 
+  --text-light-secondary: #94A3B8; 
 
-  --accent-green: #22C55E;      /* Verde Brillante (Eco, éxito) */
-  --accent-purple: #A855F7;    /* Púrpura Brillante (IA) */
+  --accent-green: #22C55E;      
+  --accent-purple: #A855F7;    
   
-  /* Colores de Prioridad (Badges) */
-  --priority-high: #F97316;     /* Naranja/Rojo Suave */
-  --priority-medium: #3B82F6;   /* Azul Suave */
-  --priority-low: #374151;      /* Azul Oscuro/Gris */
+
+  --priority-high: #F97316;     
+  --priority-medium: #3B82F6;   
+  --priority-low: #374151;      
 }
 
 /* Estilos globales */

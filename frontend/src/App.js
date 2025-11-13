@@ -14,7 +14,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import './App.css'; // <-- ¡IMPORTANTE! IMPORTA EL CSS
+import './App.css'; 
 
 ChartJS.register(
   CategoryScale,
@@ -26,10 +26,9 @@ ChartJS.register(
   Legend
 );
 
-// URL de tu API (backend)
+
 const API_URL = 'http://localhost:5001';
 
-// --- CÓDIGO DE EJEMPLO (AHORA GLOBAL) ---
 // --- **CORRECCIÓN 4** (Código de ejemplo seguro que no escribe archivos) ---
 const CODIGO_INEFICIENTE_EJEMPLO = `import time
 
